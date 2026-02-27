@@ -20,36 +20,33 @@ pipeline {
             steps {
                 sh '''
                 docker build -t my-k8s-app:${BUILD_NUMBER} .
-                docker tag my-k8s-app:${BUILD_NUMBER} laxmi916/my-k8s-app:${BUILD_NUMBER}
+                docker tag my-k8s-app:${BUILD_NUMBER} laxmi916/my-k8s-app:latest
                 '''
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh 'docker push laxmi916/my-k8s-app:${BUILD_NUMBER}'
+                sh 'docker push laxmi916/my-k8s-app:latest'
             }
         }
 
-    stage('Start Minikube if not running') {
-    steps {
-        sh '''
-        if ! minikube status | grep -q "apiserver: Running"; then
-            echo "Minikube is not running. Starting now..."
-            minikube start --driver=docker --memory=2048 --cpus=2
-        fi
-        '''
-    }
-}
+        stage('Start Minikube if not running') {
+            steps {
+                sh '''
+                if ! minikube status | grep -q "apiserver: Running"; then
+                    echo "Minikube is not running. Starting now..."
+                    minikube start --driver=docker --memory=2048 --cpus=2
+                fi
+                '''
+            }
+        }
 
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                # Replace image tag inside deployment.yaml
-                sed -i "s/IMAGE_TAG/${BUILD_NUMBER}/g" k8s/deployment.yaml
-
-                # Load image into Minikube
-                minikube image load laxmi916/my-k8s-app:${BUILD_NUMBER}
+                # Load latest image into Minikube
+                minikube image load laxmi916/my-k8s-app:latest
 
                 # Apply manifests
                 minikube kubectl -- apply -f k8s/deployment.yaml
